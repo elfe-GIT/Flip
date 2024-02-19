@@ -1,9 +1,9 @@
-function sys = KW14_preprocess(fileName)
+function sys = preprocess(fileName)
 % preprocess
 %   read data and initialize class
-p = readtable(fileName,'Sheet','Aufgabe 3.16','Range','B2:F20','ReadRowNames',true);
+p = readtable(fileName,'Sheet','sources','Range','B2:F30','ReadRowNames',true);
 data = p(:,{'number','unit'});
-
-sys = EBB(data);
+%%
+sys = sources(data);
 end
 

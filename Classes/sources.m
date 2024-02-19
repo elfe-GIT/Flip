@@ -1,82 +1,145 @@
-classdef EBB
+classdef sources
     %all properties of system
     %   being computed here ...
     
     properties
         l
         %
-        E
-        b
-        h
-        q
+        alpha
+        d
+        r
+        D
+        R
         %
-        I
-        EI
+        m
+        k
+        g
         %
         x
+        y
+        u0
+        v0
+        V
+        gamma
+        
+        l_Bez
+        T_Bez
+        F_Bez
+        
     end
     
     methods
-        function obj = EBB(data)
+        function obj = sources(data)
             %initialize
             %   class
             SIunits = containers.Map;
-            SIunits('m')     =1;
-            SIunits('cm')    =1E-2;
-            SIunits('mm')    =1E-3;
-            SIunits('N/m')   =1;
-            SIunits('N/m^2') =1;
+            SIunits('m')     = 1;
+            SIunits('kg')    = 1;
+            SIunits('cm')    = 1E-2;
+            SIunits('mm')    = 1E-3;
+            SIunits('N/m')   = 1;
+            SIunits('N/m^2') = 1;
+            SIunits('m/s')   = 1;
+            SIunits('°')     = pi/180;
             
             obj.l(1) = data({'l[1]'},:).number*SIunits(data({'l[1]'},:).unit{1});
             obj.l(2) = data({'l[2]'},:).number*SIunits(data({'l[2]'},:).unit{1});
-            obj.E    = data({'E'   },:).number*SIunits(data({'E'   },:).unit{1});
-            obj.b    = data({'b'   },:).number*SIunits(data({'b'   },:).unit{1});
-            obj.h    = data({'h'   },:).number*SIunits(data({'h'   },:).unit{1});
-            obj.q    = data({'q[0]'},:).number*SIunits(data({'q[0]'},:).unit{1});
+            obj.alpha= data({'α'   },:).number*SIunits(data({'α'   },:).unit{1});
+            obj.d    = data({'d'   },:).number*SIunits(data({'d'   },:).unit{1});
+            obj.m    = data({'m'   },:).number*SIunits(data({'m'   },:).unit{1});
+            obj.D    = data({'D'   },:).number*SIunits(data({'D'   },:).unit{1});
+            obj.k    = data({'k'   },:).number*SIunits(data({'k'   },:).unit{1});
+            obj.g    = 9.81;
+
             
+            obj.x(1) = data({'x[1]'},:).number*SIunits(data({'x[1]'},:).unit{1});
+            obj.y(1) = data({'y[1]'},:).number*SIunits(data({'y[1]'},:).unit{1});
+            obj.x(2) = data({'x[2]'},:).number*SIunits(data({'x[2]'},:).unit{1});
+            obj.y(2) = data({'y[2]'},:).number*SIunits(data({'y[2]'},:).unit{1});
+            obj.x(3) = data({'x[3]'},:).number*SIunits(data({'x[3]'},:).unit{1});
+            obj.y(3) = data({'y[3]'},:).number*SIunits(data({'y[3]'},:).unit{1});
+            obj.x(4) = data({'x[4]'},:).number*SIunits(data({'x[4]'},:).unit{1});
+            obj.y(4) = data({'y[4]'},:).number*SIunits(data({'y[4]'},:).unit{1});
+            obj.x(5) = data({'x[5]'},:).number*SIunits(data({'x[5]'},:).unit{1});
+            obj.y(5) = data({'y[5]'},:).number*SIunits(data({'y[5]'},:).unit{1});    
+            
+            % initial values 
+            obj.u0   = data({'u(0)'},:).number*SIunits(data({'u(0)'},:).unit{1});
+            obj.v0   = data({'v(0)'},:).number*SIunits(data({'v(0)'},:).unit{1});
+            obj.V    = data({'V'   },:).number*SIunits(data({'V'   },:).unit{1});
+            obj.gamma= data({'γ'   },:).number*SIunits(data({'γ'   },:).unit{1});
+               
             % derived properties
-            obj.I    = obj.b*obj.h^3/12;
-            obj.EI   = obj.E*obj.I;
+            obj.r    = obj.d/2;
+            obj.R    = obj.D/2;
             
         end
         
-        function A = sysmat(obj)
-            %populate
-            %   system matrix A
+        function dydt = odeRhs(obj,t,y)
+            %METHOD dydt delivers rhs of eom
+            
+            % coordinates
+            r = y(1:2,1);
+            % velocoties
+            rp= y(3:4,1);
 
-            % create matrix
-            A   = zeros(8,8);
-            % populate matrix (only non-zero elements)
-            A( 1 , 1 ) =  8 ;
-            A( 2 , 2 ) =  6 ;
-            A( 3 , 1 ) =  8 ;
-            A( 3 , 2 ) =  16 ;
-            A( 3 , 3 ) =  16 ;
-            A( 3 , 4 ) =  32/3;
-            A( 4 , 2 ) =  6 ;
-            A( 4 , 3 ) =  12 ;
-            A( 4 , 4 ) =  12 ;
-            A( 4 , 6 ) =  -6 ;
-            A( 5 , 3 ) =  -2 ;
-            A( 5 , 4 ) =  -4 ;
-            A( 5 , 7 ) =  2 ;
-            A( 6 , 5 ) =  8 ;
-            A( 7 , 7 ) =  -2 ;
-            A( 7 , 8 ) =  -2 ;
-            A( 8 , 8 ) =  -1;
+            % rhs for u, v
+            dydt(1:2,1) =  rp;
+            % rhs for u, v           
+            dydt(3:4,1) = [0;-obj.g] + obj.border(r) + obj.obstacle(r);
         end
-                
-        function b = rhs(obj)
-            %populate
-            %   right-hand side
-
-            % cretae matrix
-            b   = zeros(8,1);
-            % populate matrix
-            b(7,1) = 1;
-            b(8,1) = 1;
+        
+        function F = contact(obj,p)
+            % computes contact force from intrusion            
+            F = obj.k*p;
         end
-                
+        
+        function f = border(obj,r)
+            % compute restoring forces from borders
+           
+            f = [0;0];
+            % p ... penetration
+            % top
+            p = (r(2)+obj.r) - obj.l(2);
+            if p > 0
+                f = f-[0;contact(obj,p)];
+            end
+            
+            % left
+            p = -(r(1)-obj.r);
+            if p > 0
+                f = f+[contact(obj,p);0];
+            end
+            
+            % right
+            p = (r(1)+obj.r) - obj.l(1);
+            if p > 0
+                f = f-[contact(obj,p);0];
+            end
+            
+        end
+        
+        
+        function f = obstacle(obj,r)
+            % compute restoring forces from borders
+           
+            f = [0;0];
+            
+            % for all obstacles
+            for o = 1:length(obj.x)
+                e = r-[obj.x(o);obj.y(o)];
+                % length
+                l = sqrt(dot(e,e));
+                % p ... penetration
+                p = obj.r+obj.R - l;
+                if p > 0
+                    % unit vector
+                    e = e/l;
+                    f = f + obj.k*p*e;
+                end
+            end            
+        end       
+        
     end
 end
 

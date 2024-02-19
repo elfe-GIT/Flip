@@ -1,9 +1,11 @@
-function x = solveAb(sys)
-%solve 
-%   linear system of equations A*x = b
-A = sys.sysmat();
-b = sys.rhs();
+function [t,y] = solve(sys)
+% solve 
+% initial value problem
 
-x = linsolve(A,b);
+%%
+y0=[sys.u0;sys.v0;sys.V*cos(sys.gamma);sys.V*sin(sys.gamma)];
+tspan = [0,5];
+[t,y] = ode45(@sys.odeRhs,tspan,y0);
+
 end
 
