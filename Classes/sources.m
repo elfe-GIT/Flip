@@ -10,6 +10,8 @@ classdef sources
         r
         D
         R
+        T
+        eps
         %
         m
         k
@@ -34,6 +36,7 @@ classdef sources
             %   class
             SIunits = containers.Map;
             SIunits('m')     = 1;
+            SIunits('s')     = 1;
             SIunits('kg')    = 1;
             SIunits('cm')    = 1E-2;
             SIunits('mm')    = 1E-3;
@@ -49,6 +52,8 @@ classdef sources
             obj.m    = data({'m'   },:).number*SIunits(data({'m'   },:).unit{1});
             obj.D    = data({'D'   },:).number*SIunits(data({'D'   },:).unit{1});
             obj.k    = data({'k'   },:).number*SIunits(data({'k'   },:).unit{1});
+            obj.T    = data({'T'   },:).number*SIunits(data({'T'   },:).unit{1});
+            obj.eps  = data({'ε'   },:).number*SIunits(data({'ε'   },:).unit{1});
             obj.g    = 9.81;
 
             
@@ -89,9 +94,23 @@ classdef sources
             dydt(3:4,1) = [0;-obj.g] + obj.border(r) + obj.obstacle(r);
         end
         
+        function [value, isterminal, direction] = myEvent(obj, t, y)
+            value      = (y(2) <= 0);
+            isterminal = 1;   % Stop the integration
+            direction  = 0;
+        end
+        
+        
         function F = contact(obj,p)
             % computes contact force from intrusion            
-            F = obj.k*p;
+            if p < -obj.eps
+                F=0;
+            elseif p < obj.eps
+                F = p^2/(4*obj.eps)+p/2+obj.eps/4;
+            else
+                F = p;
+             end
+             F = F*obj.k;
         end
         
         function f = border(obj,r)
@@ -101,19 +120,19 @@ classdef sources
             % p ... penetration
             % top
             p = (r(2)+obj.r) - obj.l(2);
-            if p > 0
+            if p > -obj.eps
                 f = f-[0;contact(obj,p)];
             end
             
             % left
             p = -(r(1)-obj.r);
-            if p > 0
+            if p > -obj.eps
                 f = f+[contact(obj,p);0];
             end
             
             % right
             p = (r(1)+obj.r) - obj.l(1);
-            if p > 0
+            if p > -obj.eps
                 f = f-[contact(obj,p);0];
             end
             
@@ -132,10 +151,10 @@ classdef sources
                 l = sqrt(dot(e,e));
                 % p ... penetration
                 p = obj.r+obj.R - l;
-                if p > 0
+                if p > -obj.eps
                     % unit vector
                     e = e/l;
-                    f = f + obj.k*p*e;
+                    f = f + obj.contact(p)*e;
                 end
             end            
         end       
