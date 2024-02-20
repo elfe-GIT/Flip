@@ -45,6 +45,7 @@ classdef sources
             SIunits('m/s')   = 1;
             SIunits('°')     = pi/180;
             
+            % read parameter from data
             obj.l(1) = data({'l[1]'},:).number*SIunits(data({'l[1]'},:).unit{1});
             obj.l(2) = data({'l[2]'},:).number*SIunits(data({'l[2]'},:).unit{1});
             obj.alpha= data({'α'   },:).number*SIunits(data({'α'   },:).unit{1});
@@ -56,7 +57,7 @@ classdef sources
             obj.eps  = data({'ε'   },:).number*SIunits(data({'ε'   },:).unit{1});
             obj.g    = 9.81;
 
-            
+            % read obstacle-positions from data
             obj.x(1) = data({'x[1]'},:).number*SIunits(data({'x[1]'},:).unit{1});
             obj.y(1) = data({'y[1]'},:).number*SIunits(data({'y[1]'},:).unit{1});
             obj.x(2) = data({'x[2]'},:).number*SIunits(data({'x[2]'},:).unit{1});
@@ -81,8 +82,7 @@ classdef sources
         end
         
         function dydt = odeRhs(obj,t,y)
-            %METHOD dydt delivers rhs of eom
-            
+            %METHOD dydt delivers rhs of eom            
             % coordinates
             r = y(1:2,1);
             % velocoties
@@ -91,15 +91,15 @@ classdef sources
             % rhs for u, v
             dydt(1:2,1) =  rp;
             % rhs for u, v           
-            dydt(3:4,1) = [0;-obj.g] + obj.border(r) + obj.obstacle(r);
+            dydt(3:4,1) = [0;-obj.g] + (obj.border(r) + obj.obstacle(r))/obj.m;
         end
         
         function [value, isterminal, direction] = myEvent(obj, t, y)
+            % terminator for ode45 if v < 0
             value      = (y(2) <= 0);
             isterminal = 1;   % Stop the integration
             direction  = 0;
         end
-        
         
         function F = contact(obj,p)
             % computes contact force from intrusion            
@@ -118,6 +118,7 @@ classdef sources
            
             f = [0;0];
             % p ... penetration
+            
             % top
             p = (r(2)+obj.r) - obj.l(2);
             if p > -obj.eps

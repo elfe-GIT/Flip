@@ -20,7 +20,7 @@ sys = preprocess(fileName);
 [t,y] = solve(sys);
 
 %% plot results
-postprocess(sys,t,y,2);
+postprocess(sys,t,y);
 % end - velocity
 VE = y(length(t),3:4);
 disp(['velocity-ratio: ',num2str(sys.V/sqrt(dot(VE,VE)))]);
